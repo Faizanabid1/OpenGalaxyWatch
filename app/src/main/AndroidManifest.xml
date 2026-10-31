@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- BLE permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Downloading iPhone app icons from the App Store -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Updates from GitHub Releases: bring up Wi-Fi for the download, then install the APK -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+    <!-- Answer calls on the watch through its own phone app (Settings → Answer calls on watch) -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+
+    <!-- Restart the bridge after a reboot or app update -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Rest timer: the end-of-rest buzz must land on time, even in doze.
+         USE_EXACT_ALARM is granted to timer apps on 13+; older systems use the
+         auto-granted SCHEDULE_EXACT_ALARM (the code falls back to a window either way). -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+
+    <!-- Declare BLE feature -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
+    <application
+        android:name=".WatchBridgeApp"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- Wear OS standalone flag — no companion app required -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Second launcher icon, "Music Control": opens straight into the media controls -->
+        <activity
+            android:name=".ui.MediaActivity"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_media"
+            android:label="@string/media_app_name"
+            android:taskAffinity="com.watchbridge.media">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Third launcher icon, "Camera Remote": shutter button for the iPhone Camera app -->
+        <activity
+            android:name=".ui.CameraRemoteActivity"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_camera"
+            android:label="@string/camera_app_name"
+            android:taskAffinity="com.watchbridge.camera">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Fourth launcher icon, "Rest Timer": standalone between-sets timer -->
+        <activity
+            android:name=".ui.RestTimerActivity"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_timer"
+            android:label="@string/timer_app_name"
+            android:taskAffinity="com.watchbridge.timer">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.IncomingCallActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleInstance" />
+
+        <activity
+            android:name=".ui.OngoingCallActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance" />
+
+        <service
+            android:name=".service.WatchBridgeService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
+
+        <!-- Buttons on the now playing notification -->
+        <receiver
+            android:name=".ams.MediaActionReceiver"
+            android:exported="false" />
+
+        <!-- Connection status tile -->
+        <service
+            android:name=".tile.ConnectionTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_bluetooth"
+            android:label="@string/tile_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_launcher" />
+        </service>
+
+        <!-- Now playing tile with previous / play-pause / next -->
+        <service
+            android:name=".tile.MediaTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_music_note"
+            android:label="@string/media_tile_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_launcher_media" />
+        </service>
+
+        <!-- End-of-rest buzz, fired by AlarmManager so it survives doze and app death -->
+        <receiver
+            android:name=".timer.RestTimerAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Rest timer tile: presets one swipe from the watch face -->
+        <service
+            android:name=".tile.RestTimerTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_timer"
+            android:label="@string/timer_tile_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_launcher_timer" />
+        </service>
+
+        <!-- Launched by the tile's Reconnect chip; tiles can only start activities -->
+        <activity
+            android:name=".tile.ReconnectActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
+    </application>
+
+</manifest>
